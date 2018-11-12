@@ -18,7 +18,10 @@
 			</plugin>
 		</plugins>
 	</build>
-	<packaging>jar</packaging>
+	<modules>
+		<module>shp</module>
+	</modules>
+	<packaging>pom</packaging>
 
 	<name>test</name>
 	<url>http://maven.apache.org</url>
