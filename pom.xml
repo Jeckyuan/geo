@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.yuanjk</groupId>
-	<artifactId>test</artifactId>
+	<artifactId>geo</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<build>
 		<plugins>
@@ -23,7 +23,7 @@
 	</modules>
 	<packaging>pom</packaging>
 
-	<name>test</name>
+	<name>geo</name>
 	<url>http://maven.apache.org</url>
 
 	<properties>
