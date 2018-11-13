@@ -1,12 +1,22 @@
 import org.geotools.data.DataUtilities;
+import org.geotools.data.FileDataStore;
+import org.geotools.data.FileDataStoreFinder;
+import org.geotools.data.Query;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.shapefile.ShapefileDataStoreFactory;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
+import org.geotools.feature.FeatureCollection;
+import org.geotools.feature.FeatureIterator;
 import org.geotools.feature.SchemaException;
+import org.geotools.geometry.jts.WKTWriter2;
+import org.locationtech.jts.geom.Geometry;
+import org.opengis.feature.GeometryAttribute;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.GeometryType;
+import org.opengis.feature.type.PropertyType;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,8 +48,9 @@ public class ShpReader {
         // featureTypes(shpPathStr);
 
         // SHAPE_TYPE.
-        showShpFile(shpPathStr);
+        // showShpFile(shpPathStr);
 
+        readShpCotent(shpPathStr);
     }
 
 
@@ -103,28 +114,55 @@ public class ShpReader {
 
 
     public static void showShpFile(String filePathStr) {
-            ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
-            try {
-                ShapefileDataStore sds = (ShapefileDataStore)dataStoreFactory.createDataStore(new File(filePathStr).toURI().toURL());
-                // sds.setCharset(Charset.forName("GBK"));
-                SimpleFeatureSource featureSource = sds.getFeatureSource();
-                SimpleFeatureIterator itertor = featureSource.getFeatures().features();
+        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
+        try {
+            ShapefileDataStore sds = (ShapefileDataStore) dataStoreFactory.createDataStore(new File(filePathStr).toURI().toURL());
+            // sds.setCharset(Charset.forName("GBK"));
+            SimpleFeatureSource featureSource = sds.getFeatureSource();
+            SimpleFeatureIterator itertor = featureSource.getFeatures().features();
 
-                System.out.println(featureSource.getInfo());
+            System.out.println(featureSource.getInfo());
 
-                while(itertor.hasNext()) {
-                    SimpleFeature feature = itertor.next();
-                    Iterator<Property> it = feature.getProperties().iterator();
+            while (itertor.hasNext()) {
+                SimpleFeature feature = itertor.next();
+                Iterator<Property> it = feature.getProperties().iterator();
 
-                    while(it.hasNext()) {
-                        Property pro = it.next();
-                        System.out.println(pro);
-                    }
+                while (it.hasNext()) {
+                    Property pro = it.next();
+                    System.out.println(pro);
                 }
-                itertor.close();
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+            itertor.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static void readShpCotent(String shpFile) throws IOException {
+        File file = new File(shpFile);
+        FileDataStore myData = FileDataStoreFinder.getDataStore(file);
+        SimpleFeatureSource source = myData.getFeatureSource();
+        SimpleFeatureType schema = source.getSchema();
+
+        Query query = new Query(schema.getTypeName());
+        query.setMaxFeatures(1);
+
+        FeatureCollection<SimpleFeatureType, SimpleFeature> collection = source.getFeatures(query);
+        try (FeatureIterator<SimpleFeature> features = collection.features()) {
+            while (features.hasNext()) {
+                SimpleFeature feature = features.next();
+                GeometryAttribute geometryAttribute = feature.getDefaultGeometryProperty();
+                GeometryType geometryType = geometryAttribute.getType();
+                System.out.println("GeoAttribute type: " + geometryType.getBinding().getName());
+                System.out.println("GeoAttribute content WKT: " + (new WKTWriter2()).write((Geometry) feature.getDefaultGeometry()));
+
+                System.out.println(feature.getID() + ": ");
+                for (Property attribute : feature.getProperties()) {
+                    System.out.println("\t" + attribute.getName() + ":" + attribute.getValue());
+                }
+            }
+        }
     }
 
 }
