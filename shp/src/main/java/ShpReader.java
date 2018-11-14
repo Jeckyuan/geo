@@ -1,3 +1,4 @@
+import com.orientechnologies.orient.core.record.impl.ODocument;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
@@ -15,6 +16,8 @@ import org.opengis.feature.GeometryAttribute;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.AttributeDescriptor;
+import org.opengis.feature.type.AttributeType;
 import org.opengis.feature.type.GeometryType;
 import org.opengis.feature.type.PropertyType;
 
@@ -24,6 +27,7 @@ import java.io.Serializable;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class ShpReader {
@@ -122,7 +126,7 @@ public class ShpReader {
             SimpleFeatureIterator itertor = featureSource.getFeatures().features();
 
             System.out.println(featureSource.getInfo());
-
+            ODocument oDocument = new ODocument();
             while (itertor.hasNext()) {
                 SimpleFeature feature = itertor.next();
                 Iterator<Property> it = feature.getProperties().iterator();
@@ -144,6 +148,20 @@ public class ShpReader {
         FileDataStore myData = FileDataStoreFinder.getDataStore(file);
         SimpleFeatureSource source = myData.getFeatureSource();
         SimpleFeatureType schema = source.getSchema();
+
+        List<AttributeDescriptor> attributeDescriptorList = schema.getAttributeDescriptors();
+        StringBuilder stringBuilder = new StringBuilder();
+        for (AttributeDescriptor attributeDescriptor : attributeDescriptorList) {
+            stringBuilder.append(attributeDescriptor.getName()).append("=").append(attributeDescriptor.getType().getBinding().getSimpleName()).append("\n");
+        }
+        System.out.println("Descriptor schema definition: " + stringBuilder);
+
+        List<AttributeType> attributeTypes = schema.getTypes();
+        stringBuilder = new StringBuilder();
+        for (AttributeType attributeType : attributeTypes) {
+            stringBuilder.append(attributeType.getName()).append("=").append(attributeType.getBinding().toString()).append(";");
+        }
+        System.out.println("Schema definition: " + stringBuilder);
 
         Query query = new Query(schema.getTypeName());
         query.setMaxFeatures(1);

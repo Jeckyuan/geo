@@ -86,5 +86,12 @@
     <orderEntry type="library" name="Maven: com.conversantmedia:disruptor:1.2.13" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.13" level="project" />
     <orderEntry type="library" name="Maven: com.miglayout:miglayout:swing:3.7" level="project" />
+    <orderEntry type="library" name="Maven: com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2" level="project" />
+    <orderEntry type="library" name="Maven: com.orientechnologies:orientdb-core:2.2.37" level="project" />
+    <orderEntry type="library" name="Maven: org.xerial.snappy:snappy-java:1.1.0.1" level="project" />
+    <orderEntry type="library" name="Maven: net.java.dev.jna:jna:4.5.0" level="project" />
+    <orderEntry type="library" name="Maven: net.java.dev.jna:jna-platform:4.5.0" level="project" />
+    <orderEntry type="library" name="Maven: com.orientechnologies:orientdb-client:2.2.37" level="project" />
+    <orderEntry type="library" name="Maven: com.orientechnologies:orientdb-enterprise:2.2.0-beta" level="project" />
   </component>
 </module>
