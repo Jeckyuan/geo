@@ -1,0 +1,6 @@
+CREATE class Restaurant
+CREATE PROPERTY Restaurant.name STRING
+CREATE PROPERTY Restaurant.location EMBEDDED OPoint
+
+
+INSERT INTO  Restaurant SET name = 'Dar Poeta', location = St_GeomFromText("POINT (12.4684635 41.8914114)")

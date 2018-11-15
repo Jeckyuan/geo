@@ -1,0 +1,8 @@
+
+Point (OPoint)
+Line (OLine)
+Polygon (OPolygon)
+MultiPoint (OMultiPoint)
+MultiLine (OMultiline)
+MultiPolygon (OMultiPlygon)
+Geometry Collections
