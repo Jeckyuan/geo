@@ -1,4 +1,6 @@
+import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.orientechnologies.spatial.shape.OPointShapeBuilder;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
@@ -16,10 +18,7 @@ import org.opengis.feature.GeometryAttribute;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.feature.type.AttributeDescriptor;
-import org.opengis.feature.type.AttributeType;
-import org.opengis.feature.type.GeometryType;
-import org.opengis.feature.type.PropertyType;
+import org.opengis.feature.type.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,10 +49,8 @@ public class ShpReader {
         // featureSource.
 
         // featureTypes(shpPathStr);
-
         // SHAPE_TYPE.
         // showShpFile(shpPathStr);
-
         readShpCotent(shpPathStr);
     }
 
@@ -126,7 +123,6 @@ public class ShpReader {
             SimpleFeatureIterator itertor = featureSource.getFeatures().features();
 
             System.out.println(featureSource.getInfo());
-            ODocument oDocument = new ODocument();
             while (itertor.hasNext()) {
                 SimpleFeature feature = itertor.next();
                 Iterator<Property> it = feature.getProperties().iterator();
@@ -146,27 +142,32 @@ public class ShpReader {
     public static void readShpCotent(String shpFile) throws IOException {
         File file = new File(shpFile);
         FileDataStore myData = FileDataStoreFinder.getDataStore(file);
-        SimpleFeatureSource source = myData.getFeatureSource();
-        SimpleFeatureType schema = source.getSchema();
+        SimpleFeatureSource featureSource = myData.getFeatureSource();
+        SimpleFeatureType featureType = featureSource.getSchema();
 
-        List<AttributeDescriptor> attributeDescriptorList = schema.getAttributeDescriptors();
+        GeometryDescriptor geometryDescriptor = featureType.getGeometryDescriptor();
+
+        System.out.println("geometryDescriptor.getName()=" + geometryDescriptor.getName() + ", geometryDescriptor.getType().getName()=" + geometryDescriptor.getType().getName() + ", geometryDescriptor.getType().getBinding()=" + geometryDescriptor.getType().getBinding());
+
+
+        List<AttributeDescriptor> attributeDescriptorList = featureType.getAttributeDescriptors();
         StringBuilder stringBuilder = new StringBuilder();
         for (AttributeDescriptor attributeDescriptor : attributeDescriptorList) {
             stringBuilder.append(attributeDescriptor.getName()).append("=").append(attributeDescriptor.getType().getBinding().getSimpleName()).append("\n");
         }
         System.out.println("Descriptor schema definition: " + stringBuilder);
 
-        List<AttributeType> attributeTypes = schema.getTypes();
+        List<AttributeType> attributeTypes = featureType.getTypes();
         stringBuilder = new StringBuilder();
         for (AttributeType attributeType : attributeTypes) {
             stringBuilder.append(attributeType.getName()).append("=").append(attributeType.getBinding().toString()).append(";");
         }
         System.out.println("Schema definition: " + stringBuilder);
 
-        Query query = new Query(schema.getTypeName());
+        Query query = new Query(featureType.getTypeName());
         query.setMaxFeatures(1);
 
-        FeatureCollection<SimpleFeatureType, SimpleFeature> collection = source.getFeatures(query);
+        FeatureCollection<SimpleFeatureType, SimpleFeature> collection = featureSource.getFeatures(query);
         try (FeatureIterator<SimpleFeature> features = collection.features()) {
             while (features.hasNext()) {
                 SimpleFeature feature = features.next();

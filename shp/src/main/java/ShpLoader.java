@@ -1,10 +1,11 @@
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
+import com.orientechnologies.orient.core.metadata.schema.OProperty;
+import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.OCommandSQL;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
-import com.orientechnologies.spatial.shape.OPointShapeBuilder;
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
 import org.geotools.data.Query;
@@ -13,30 +14,48 @@ import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.geotools.geometry.jts.WKTWriter2;
 import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.MultiPolygon;
 import org.opengis.feature.GeometryAttribute;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
-import org.opengis.feature.type.GeometryType;
+import org.opengis.feature.type.GeometryDescriptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 @SuppressWarnings("Duplicates")
 public class ShpLoader {
 
+    private static Logger log = LoggerFactory.getLogger(ShpLoader.class);
+
+    public static final String FID = "feature_id";
+    public static final String THE_GEOM = "the_geom";
+    private static final String CREATE_PROPERTY_CMD_TEMPLATE = "CREATE PROPERTY %s %s";
+
+    public static SimpleDateFormat defaultDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
     public static void main(String[] args) throws IOException {
         ODatabaseDocumentTx database = new ODatabaseDocumentTx("remote:localhost/spatial").open("root", "wyc");
-        String shpPathStr = "D:\\data\\spatial_data\\italy-points-shape\\points.shp";
+        // String shpPathStr = "D:\\data\\spatial_data\\italy-points-shape\\points.shp";
+        String shpPathStr = "D:\\data\\spatial_data\\ne_10m_rivers_lake_centerlines\\ne_10m_rivers_lake_centerlines.shp";
 
         database.begin();
         try {
             // YOUR CODE
             // createDocument(database, shpPathStr);
-            contentInster(database, shpPathStr, "test_load_point");
+            // contentInsert(database, shpPathStr, "test_load_point");
+            // listAllOClasses(database);
+            String className = "ne_10m_rivers_lake_centerlines";
+            // createDocument(database, className, shpPathStr);
+            createOClass(database, className, shpPathStr);
+            contentInsert(database, shpPathStr, className);
             database.commit();
         } finally {
             database.close();
@@ -44,21 +63,52 @@ public class ShpLoader {
 
     }
 
-    public static void createDocument(ODatabaseDocumentTx database, String shpFile) throws IOException {
+    public static boolean createDocument(ODatabaseDocumentTx database, String className, String shpFile) throws IOException {
         File file = new File(shpFile);
         FileDataStore myData = FileDataStoreFinder.getDataStore(file);
-        SimpleFeatureSource source = myData.getFeatureSource();
-        SimpleFeatureType schema = source.getSchema();
+        SimpleFeatureSource featureSource = myData.getFeatureSource();
+        SimpleFeatureType featureType = featureSource.getSchema();
 
-        List<AttributeDescriptor> attributeDescriptorList = schema.getAttributeDescriptors();
+        List<AttributeDescriptor> attributeDescriptorList = featureType.getAttributeDescriptors();
         StringBuilder stringBuilder = new StringBuilder();
-        OClass createSchema = database.getMetadata().getSchema().createClass("test_class_a");
-        for (AttributeDescriptor attributeDescriptor : attributeDescriptorList) {
-            stringBuilder.append(attributeDescriptor.getName()).append("=").append(attributeDescriptor.getType().getBinding().getSimpleName()).append("\n");
-            createSchema.createProperty(attributeDescriptor.getName().toString(), OType.getTypeByClass(attributeDescriptor.getType().getBinding()));
+        //add new class
+        OSchema oSchema = database.getMetadata().getSchema();
+        if (oSchema.existsClass(className)) {
+            log.error("OClass of {} is already exists", className);
+            return false;
         }
-        System.out.println("Descriptor schema definition: " + stringBuilder);
+        OClass oClass = oSchema.createClass(className);
+        stringBuilder.append(className).append(": \n");
+        //add default properties: fid-->string, the_geom-->embedded
+        oClass.createProperty(FID, OType.STRING);
+        stringBuilder.append("\t").append(FID).append("\t").append(OType.STRING).append("\n");
+        GeometryDescriptor geometryDescriptor = featureType.getGeometryDescriptor();
+        if (geometryDescriptor == null) {
+            log.error("no geometry descriptor exists");
+            return false;
+        }
+        String geoEmbeddedClassName = "O" + geometryDescriptor.getType().getName();
+        // log.info("geoEmbeddedClassName={}", geoEmbeddedClassName);
+        OClass geoOClass = oSchema.getClass(geoEmbeddedClassName);
+        if (geoOClass == null) {
+            log.error("embedded OClass of {} not exists", geoEmbeddedClassName);
+            return false;
+        }
+        oClass.createProperty(THE_GEOM, OType.EMBEDDED, geoOClass);
+        stringBuilder.append("\t").append(THE_GEOM).append("\t").append(OType.EMBEDDED).append("\t").append(geoEmbeddedClassName).append("\n");
 
+        for (AttributeDescriptor attributeDescriptor : attributeDescriptorList) {
+            OType oType = OType.getTypeByClass(attributeDescriptor.getType().getBinding());
+            if (oType == null) {
+                log.error("Can not get OType of this property, name={}, class={}", attributeDescriptor.getName(), attributeDescriptor.getType().getBinding());
+            } else {
+                stringBuilder.append("\t").append(attributeDescriptor.getName()).append("\t").append(oType).append("\n");
+                oClass.createProperty(attributeDescriptor.getName().toString(), oType);
+            }
+        }
+        log.info("OClass " + stringBuilder);
+        oSchema.save();
+        return true;
     }
 
     public void queryDocument() {
@@ -113,34 +163,132 @@ public class ShpLoader {
         }
     }
 
+    public static boolean createOClass(ODatabaseDocumentTx database, String className, String shpFile) throws IOException {
+        File file = new File(shpFile);
+        FileDataStore myData = FileDataStoreFinder.getDataStore(file);
+        SimpleFeatureSource featureSource = myData.getFeatureSource();
+        SimpleFeatureType featureType = featureSource.getSchema();
 
-    public static void contentInster(ODatabaseDocumentTx database, String shpFile, String className) throws IOException {
+        List<AttributeDescriptor> attributeDescriptorList = featureType.getAttributeDescriptors();
+        StringBuilder stringBuilder = new StringBuilder();
+        //add new class
+        OSchema oSchema = database.getMetadata().getSchema();
+        if (oSchema.existsClass(className)) {
+            log.error("OClass of {} is already exists", className);
+            return false;
+        }
+
+        String createClassCmd = "CREATE CLASS " + className;
+        database.command(new OCommandSQL(createClassCmd)).execute();
+        System.out.println(createClassCmd);
+        // OClass oClass = oSchema.createClass(className);
+        stringBuilder.append(className).append(": \n");
+        //add default properties: fid-->string, the_geom-->embedded
+        // oClass.createProperty(FID, OType.STRING);
+        String cmd = String.format(CREATE_PROPERTY_CMD_TEMPLATE, className + "." + FID, OType.STRING);
+        System.out.println(cmd);
+        database.command(new OCommandSQL(cmd)).execute();
+        stringBuilder.append("\t").append(FID).append("\t").append(OType.STRING).append("\n");
+        GeometryDescriptor geometryDescriptor = featureType.getGeometryDescriptor();
+        if (geometryDescriptor == null) {
+            log.error("no geometry descriptor exists");
+            return false;
+        }
+        String geoEmbeddedClassName = "O" + geometryDescriptor.getType().getName();
+        // log.info("geoEmbeddedClassName={}", geoEmbeddedClassName);
+        OClass geoOClass = oSchema.getClass(geoEmbeddedClassName);
+        if (geoOClass == null) {
+            log.error("embedded OClass of {} not exists", geoEmbeddedClassName);
+            return false;
+        }
+        // oClass.createProperty(THE_GEOM, OType.EMBEDDED, geoOClass);
+        cmd = String.format(CREATE_PROPERTY_CMD_TEMPLATE, className + "." + THE_GEOM, OType.EMBEDDED + " " + geoEmbeddedClassName);
+        System.out.println(cmd);
+        database.command(new OCommandSQL(cmd)).execute();
+        stringBuilder.append("\t").append(THE_GEOM).append("\t").append(OType.EMBEDDED).append("\t").append(geoEmbeddedClassName).append("\n");
+
+        for (AttributeDescriptor attributeDescriptor : attributeDescriptorList) {
+            OType oType = OType.getTypeByClass(attributeDescriptor.getType().getBinding());
+            String propertyName = attributeDescriptor.getName().toString();
+            if (propertyName.toLowerCase().equals(FID.toLowerCase()) || propertyName.toLowerCase().equals(THE_GEOM.toLowerCase())) {
+                continue;
+            }
+            if (oType == null) {
+                log.error("Can not get OType of this property, name={}, class={}", attributeDescriptor.getName(), attributeDescriptor.getType().getBinding());
+            } else {
+                stringBuilder.append("\t").append(attributeDescriptor.getName()).append("\t").append(oType).append("\n");
+                // oClass.createProperty(attributeDescriptor.getName().toString(), oType);
+                cmd = String.format(CREATE_PROPERTY_CMD_TEMPLATE, className + "." + attributeDescriptor.getName(), oType.toString());
+                System.out.println(cmd);
+                database.command(new OCommandSQL(cmd)).execute();
+            }
+        }
+        log.info("OClass " + stringBuilder);
+        return true;
+    }
+
+    public static void contentInsert(ODatabaseDocumentTx database, String shpFile, String className) throws IOException {
         File file = new File(shpFile);
         FileDataStore dataStore = FileDataStoreFinder.getDataStore(file);
         SimpleFeatureSource featureSource = dataStore.getFeatureSource();
         SimpleFeatureType featureType = featureSource.getSchema();
         Query query = new Query(featureType.getTypeName());
-        query.setMaxFeatures(3);
+        query.setMaxFeatures(Integer.MAX_VALUE);
         FeatureCollection<SimpleFeatureType, SimpleFeature> collection = featureSource.getFeatures(query);
 
         try (FeatureIterator<SimpleFeature> features = collection.features()) {
             while (features.hasNext()) {
                 StringBuilder builder = new StringBuilder();
-                builder.append("INSERT INTO  ").append(className).append(" SET ");
+                builder.append("INSERT INTO ").append(className).append(" SET ");
 
                 SimpleFeature feature = features.next();
-                //add fid property
-                builder.append(" fid = '").append(feature.getID()).append("' ");
+                //add feature id property
+                // builder.append(FID + " = '").append(feature.getID()).append("' ");
+                String column = String.format(" %s = \'%s\' ", FID, feature.getID());
+                builder.append(column);
                 //add geometry property
                 Geometry geometry = (Geometry) feature.getDefaultGeometry();
-                builder.append(", the_geom = St_GeomFromText(\"").append((new WKTWriter2()).writeFormatted(geometry)).append("\") ");
-                for (Property attribute : feature.getProperties()) {
-                    // System.out.println(attribute.getType().getBinding().getSimpleName() + "\t" + attribute.getName() + ":" + attribute.getValue());
+                builder.append(", " + THE_GEOM + " = St_GeomFromText(\"").append((new WKTWriter2()).writeFormatted(geometry)).append("\") ");
+                //add other properties
+                for (Property property : feature.getProperties()) {
+                    String propertyName = property.getName().toString();
+                    if (THE_GEOM.toLowerCase().equals(propertyName.toLowerCase())) {
+                        continue;
+                    }
+                    Object propertyValue = property.getValue();
+                    if (propertyValue != null) {
+                        String propertyValueStr;
+                        Class aClass = property.getType().getBinding();
+                        if (Date.class.equals(aClass)) {
+                            propertyValueStr = defaultDateFormat.format(property.getValue());
+                        } else {
+                            propertyValueStr = property.getValue().toString();
+                        }
+                        if (propertyValueStr != null && !propertyValueStr.trim().equals("")) {
+                            column = String.format(" , %s = \'%s\'", propertyName, propertyValueStr.replace("'", " "));
+                            builder.append(column);
+                        }
+                    }
                 }
-
                 System.out.println(builder.toString());
-               database.command(new OCommandSQL(builder.toString())).execute();
-                System.out.println("insert result: " );
+                try {
+                    database.command(new OCommandSQL(builder.toString())).execute();
+                } catch (Exception e) {
+                    System.out.println("insert error: " + builder);
+                }
+            }
+        }
+    }
+
+
+    public static void listAllOClasses(ODatabaseDocumentTx database) {
+        OSchema oSchema = database.getMetadata().getSchema();
+        Collection<OClass> oClassCollection = oSchema.getClasses();
+        for (OClass oClass : oClassCollection) {
+            System.out.println(oClass.getName() + ": ");
+            Collection<OProperty> oPropertyCollection = oClass.properties();
+            for (OProperty oProperty : oPropertyCollection) {
+                System.out.println("    " + oProperty.getName() + "\t" + oProperty.getType());
             }
         }
     }
