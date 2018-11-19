@@ -1,3 +1,5 @@
+package com.yuanjk.shp;
+
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
@@ -20,6 +22,7 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.GeometryDescriptor;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +47,9 @@ public class ShpLoader {
     public static void main(String[] args) throws IOException {
         ODatabaseDocumentTx database = new ODatabaseDocumentTx("remote:localhost/spatial").open("root", "wyc");
         // String shpPathStr = "D:\\data\\spatial_data\\italy-points-shape\\points.shp";
-        String shpPathStr = "D:\\data\\spatial_data\\ne_10m_rivers_lake_centerlines\\ne_10m_rivers_lake_centerlines.shp";
+        // String shpPathStr = "D:\\data\\spatial_data\\ne_10m_rivers_lake_centerlines\\ne_10m_rivers_lake_centerlines.shp";
+        String shpPathStr = "G:\\data\\geospatial_data\\italy-points-shape\\points.shp";
+        // String shpPathStr = "G:\\data\\geospatial_data\\ne_10m_admin_1_states_provinces\\ne_10m_admin_1_states_provinces.shp";
 
         database.begin();
         try {
@@ -52,10 +57,11 @@ public class ShpLoader {
             // createDocument(database, shpPathStr);
             // contentInsert(database, shpPathStr, "test_load_point");
             // listAllOClasses(database);
-            String className = "ne_10m_rivers_lake_centerlines";
+            String className = "test_shp_poi_italy";
             // createDocument(database, className, shpPathStr);
             createOClass(database, className, shpPathStr);
             contentInsert(database, shpPathStr, className);
+            // getShpStructure(shpPathStr);
             database.commit();
         } finally {
             database.close();
@@ -277,9 +283,12 @@ public class ShpLoader {
                     System.out.println("insert error: " + builder);
                 }
             }
+        }finally {
+            if (dataStore != null) {
+                dataStore.dispose();
+            }
         }
     }
-
 
     public static void listAllOClasses(ODatabaseDocumentTx database) {
         OSchema oSchema = database.getMetadata().getSchema();
@@ -291,6 +300,20 @@ public class ShpLoader {
                 System.out.println("    " + oProperty.getName() + "\t" + oProperty.getType());
             }
         }
+    }
+
+    public static void getShpStructure(String shpFile) throws IOException {
+        File file = new File(shpFile);
+        FileDataStore dataStore = FileDataStoreFinder.getDataStore(file);
+        SimpleFeatureSource featureSource = dataStore.getFeatureSource();
+        SimpleFeatureType featureType = featureSource.getSchema();
+        GeometryDescriptor geometryDescriptor = featureType.getGeometryDescriptor();
+
+        CoordinateReferenceSystem referenceSystem = geometryDescriptor.getCoordinateReferenceSystem();
+
+        System.out.println("CRS of " + shpFile + " is " + referenceSystem.toWKT());
+        // System.out.println("CRS of " + shpFile + " is " + referenceSystem);
+
     }
 
 }

@@ -1,3 +1,5 @@
+package com.yuanjk.shp;
+
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.spatial.shape.OPointShapeBuilder;

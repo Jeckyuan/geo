@@ -1,3 +1,5 @@
+package com.yuanjk.shp;
+
 import java.io.File;
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
@@ -13,12 +15,12 @@ import org.geotools.swing.data.JFileDataStoreChooser;
 /**
  * Prompts the user for a shapefile and displays the contents on the screen in a map frame.
  *
- * <p>This is the GeoTools Quickstart application used in documentationa and tutorials. *
+ * <p>This is the GeoTools com.yuanjk.shp.Quickstart application used in documentationa and tutorials. *
  */
 public class Quickstart {
 
     /**
-     * GeoTools Quickstart demo application. Prompts the user for a shapefile and displays its
+     * GeoTools com.yuanjk.shp.Quickstart demo application. Prompts the user for a shapefile and displays its
      * contents on the screen in a map frame
      */
     public static void main(String[] args) throws Exception {
@@ -33,7 +35,7 @@ public class Quickstart {
 
         // Create a map content and add our shapefile to it
         MapContent map = new MapContent();
-        map.setTitle("Quickstart");
+        map.setTitle("com.yuanjk.shp.Quickstart");
 
         Style style = SLD.createSimpleStyle(featureSource.getSchema());
         Layer layer = new FeatureLayer(featureSource, style);
