@@ -46,9 +46,9 @@ public class ShpLoader {
 
     public static void main(String[] args) throws IOException {
         ODatabaseDocumentTx database = new ODatabaseDocumentTx("remote:localhost/spatial").open("root", "wyc");
-        // String shpPathStr = "D:\\data\\spatial_data\\italy-points-shape\\points.shp";
+        String shpPathStr = "D:\\data\\spatial_data\\italy-points-shape\\points.shp";
         // String shpPathStr = "D:\\data\\spatial_data\\ne_10m_rivers_lake_centerlines\\ne_10m_rivers_lake_centerlines.shp";
-        String shpPathStr = "G:\\data\\geospatial_data\\italy-points-shape\\points.shp";
+        // String shpPathStr = "G:\\data\\geospatial_data\\italy-points-shape\\points.shp";
         // String shpPathStr = "G:\\data\\geospatial_data\\ne_10m_admin_1_states_provinces\\ne_10m_admin_1_states_provinces.shp";
 
         database.begin();
@@ -57,7 +57,7 @@ public class ShpLoader {
             // createDocument(database, shpPathStr);
             // contentInsert(database, shpPathStr, "test_load_point");
             // listAllOClasses(database);
-            String className = "test_shp_poi_italy";
+            String className = "italy_points_shape";
             // createDocument(database, className, shpPathStr);
             createOClass(database, className, shpPathStr);
             contentInsert(database, shpPathStr, className);
