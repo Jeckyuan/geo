@@ -41,6 +41,7 @@ public class ShpLoader {
     public static final String FID = "feature_id";
     public static final String THE_GEOM = "the_geom";
     private static final String CREATE_PROPERTY_CMD_TEMPLATE = "CREATE PROPERTY %s %s";
+    private static final String CREATE_SPATIAL_INDEX_CMD_TEMPLATE = "CREATE INDEX %s ON %s(%s) SPATIAL ENGINE LUCENE";
 
     public static SimpleDateFormat defaultDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -57,7 +58,8 @@ public class ShpLoader {
             // createDocument(database, shpPathStr);
             // contentInsert(database, shpPathStr, "test_load_point");
             // listAllOClasses(database);
-            String className = "test_shp_poi_italy";
+            String className = "italy_points";
+            // String className = "states_provinces_boundary";
             // createDocument(database, className, shpPathStr);
             createOClass(database, className, shpPathStr);
             contentInsert(database, shpPathStr, className);
@@ -249,7 +251,6 @@ public class ShpLoader {
 
                 SimpleFeature feature = features.next();
                 //add feature id property
-                // builder.append(FID + " = '").append(feature.getID()).append("' ");
                 String column = String.format(" %s = \'%s\' ", FID, feature.getID());
                 builder.append(column);
                 //add geometry property
@@ -283,7 +284,10 @@ public class ShpLoader {
                     System.out.println("insert error: " + builder);
                 }
             }
-        }finally {
+            String createIndexCmd = String.format(CREATE_SPATIAL_INDEX_CMD_TEMPLATE, className + "." + THE_GEOM, className, THE_GEOM);
+            System.out.println(createIndexCmd);
+            database.command(new OCommandSQL(createIndexCmd));
+        } finally {
             if (dataStore != null) {
                 dataStore.dispose();
             }
