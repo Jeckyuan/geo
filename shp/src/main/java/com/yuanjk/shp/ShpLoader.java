@@ -251,6 +251,7 @@ public class ShpLoader {
 
                 SimpleFeature feature = features.next();
                 //add feature id property
+                // builder.append(FID + " = '").append(feature.getID()).append("' ");
                 String column = String.format(" %s = \'%s\' ", FID, feature.getID());
                 builder.append(column);
                 //add geometry property
