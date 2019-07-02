@@ -34,7 +34,7 @@ import java.util.Map;
 public class ShpReader {
 
     public static void main(String[] args) throws IOException, SchemaException {
-        String shpPathStr = "D:\\data\\spatial_data\\ne_10m_admin_1_states_provinces\\ne_10m_admin_1_states_provinces.shp";
+        String shpPathStr = "G:\\data\\geospatial_data\\ne_10m_admin_1_states_provinces\\ne_10m_admin_1_states_provinces.shp";
         // File shpFile = Paths.get(shpPathStr).toFile();
         //
         // ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();

@@ -1,5 +1,8 @@
 package com.yuanjk.shp;
 
+import com.orientechnologies.orient.core.db.ODatabaseSession;
+import com.orientechnologies.orient.core.db.OrientDB;
+import com.orientechnologies.orient.core.db.OrientDBConfig;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
@@ -21,6 +24,7 @@ import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
+import org.opengis.feature.type.AttributeType;
 import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.slf4j.Logger;
@@ -47,10 +51,15 @@ public class ShpLoader {
 
     public static void main(String[] args) throws IOException {
         ODatabaseDocumentTx database = new ODatabaseDocumentTx("remote:localhost/spatial").open("root", "wyc");
+        // OrientDB orientDB = new OrientDB("remote:localhost", OrientDBConfig.defaultConfig());
+        // ODatabaseSession db = orientDB.open("spatial", "root", "wyc");
         // String shpPathStr = "D:\\data\\spatial_data\\italy-points-shape\\points.shp";
         // String shpPathStr = "D:\\data\\spatial_data\\ne_10m_rivers_lake_centerlines\\ne_10m_rivers_lake_centerlines.shp";
-        String shpPathStr = "G:\\data\\geospatial_data\\italy-points-shape\\points.shp";
-        // String shpPathStr = "G:\\data\\geospatial_data\\ne_10m_admin_1_states_provinces\\ne_10m_admin_1_states_provinces.shp";
+        // String shpPathStr = "G:\\data\\geospatial_data\\规划重大项目\\重大项目.shp";
+        // String shpPathStr = "G:\\data\\geospatial_data\\KG_GHYD_NAZT\\KG_GHYD_NAZT.shp";
+        // String shpPathStr = "G:\\data\\geospatial_data\\规划试验数据-宗地层\\宗地层数据.shp";
+        String shpPathStr = "G:\\data\\geospatial_data\\规划用地\\WGS84\\XSPQ\\CBD_HXQ.shp";
+        // String shpPathStr = "G:\\data\\geospatial_data\\福州数据\\通信工程-点状\\WGS84\\通信工程近期规划通信站点.shp";
 
         database.begin();
         try {
@@ -58,13 +67,14 @@ public class ShpLoader {
             // createDocument(database, shpPathStr);
             // contentInsert(database, shpPathStr, "test_load_point");
             // listAllOClasses(database);
-            String className = "italy_points";
+            // String className = "TXGC_JQGH_TXZD_CLASS";
+            String className = "KG_CBD_HXQ_CLASS";
             // String className = "states_provinces_boundary";
             // createDocument(database, className, shpPathStr);
             createOClass(database, className, shpPathStr);
             contentInsert(database, shpPathStr, className);
             // getShpStructure(shpPathStr);
-            database.commit();
+            // database.commit();
         } finally {
             database.close();
         }
@@ -257,6 +267,8 @@ public class ShpLoader {
                 //add geometry property
                 Geometry geometry = (Geometry) feature.getDefaultGeometry();
                 builder.append(", " + THE_GEOM + " = St_GeomFromText(\"").append((new WKTWriter2()).writeFormatted(geometry)).append("\") ");
+                //非空间类型
+                // builder.append(", " + THE_GEOM + " = \'").append((new WKTWriter2()).writeFormatted(geometry)).append("\'");
                 //add other properties
                 for (Property property : feature.getProperties()) {
                     String propertyName = property.getName().toString();
@@ -282,6 +294,7 @@ public class ShpLoader {
                 try {
                     database.command(new OCommandSQL(builder.toString())).execute();
                 } catch (Exception e) {
+                    e.printStackTrace();
                     System.out.println("insert error: " + builder);
                 }
             }
@@ -316,8 +329,24 @@ public class ShpLoader {
 
         CoordinateReferenceSystem referenceSystem = geometryDescriptor.getCoordinateReferenceSystem();
 
-        System.out.println("CRS of " + shpFile + " is " + referenceSystem.toWKT());
+        System.out.println("CRS of " + shpFile + " is: \n" + referenceSystem.toWKT());
         // System.out.println("CRS of " + shpFile + " is " + referenceSystem);
+
+        int count = featureSource.getCount(Query.ALL);
+        System.out.println("features count=" + count);
+        List<AttributeDescriptor> attributeDescriptorList = featureType.getAttributeDescriptors();
+        StringBuilder stringBuilder = new StringBuilder();
+        for (AttributeDescriptor attributeDescriptor : attributeDescriptorList) {
+            stringBuilder.append(attributeDescriptor.getName()).append("=").append(attributeDescriptor.getType().getBinding().getSimpleName()).append("\n");
+        }
+        System.out.println("Descriptor schema definition: \n" + stringBuilder);
+
+        List<AttributeType> attributeTypes = featureType.getTypes();
+        stringBuilder = new StringBuilder();
+        for (AttributeType attributeType : attributeTypes) {
+            stringBuilder.append(attributeType.getName()).append("=").append(attributeType.getBinding().toString()).append(";");
+        }
+        // System.out.println("Schema definition: \n" + stringBuilder);
 
     }
 
