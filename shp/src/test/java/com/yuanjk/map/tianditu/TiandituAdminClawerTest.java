@@ -54,11 +54,14 @@ public class TiandituAdminClawerTest {
 
     @Test
     public void getAllAdmin() {
+        String filePath = "D:\\tmp\\allAdmin.txt";
         try {
-            tiandituAdminClawer.allAdmin();
+            tiandituAdminClawer.allAdmin(filePath);
         } catch (URISyntaxException e) {
             e.printStackTrace();
         } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
