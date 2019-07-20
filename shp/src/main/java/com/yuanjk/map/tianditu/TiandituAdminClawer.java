@@ -1,7 +1,7 @@
 package com.yuanjk.map.tianditu;
 
 import com.alibaba.fastjson.JSON;
-import com.yuanjk.util.HttpCLientUtil;
+import com.yuanjk.util.HttpClientUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
@@ -9,15 +9,18 @@ import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 
 public class TiandituAdminClawer {
     private static final Logger log = LoggerFactory.getLogger(TiandituAdminClawer.class);
@@ -31,15 +34,17 @@ public class TiandituAdminClawer {
                 .setPath("/administrative")
                 .setParameters(parameters)
                 .build();
-        log.info("get request uri: {}", uri.toString());
+        log.debug("get request uri: {}", uri.toString());
         return uri;
     }
 
-    public void allAdmin(String filePath) throws URISyntaxException, IOException, InterruptedException {
-        String cityCode = "156000000";//中华人民共和国
-        String content = HttpCLientUtil.getContentAsString(getUri(getQueryParameters(cityCode)));
-        log.info("response content: {}", content);
+    public void allAdmin(String filePath, String cityCode, String cityName) throws URISyntaxException, IOException {
+        // String cityCode = "156000000";//中华人民共和国
+        // String cityName = "中华人民共和国";//中华人民共和国
+        String content = HttpClientUtil.getContentAsString(getUri(getQueryParameters(cityCode)));
+        log.debug("response content: {}", content);
         ResponseBean responseBean = JSON.parseObject(content, ResponseBean.class);
+        saveOneAdmin(Paths.get(filePath).getParent(), cityCode, cityName, content);
         saveToFile(filePath, responseBean);
 
         // List<DataBean> dataBeanList = responseBean.getData();
@@ -50,9 +55,10 @@ public class TiandituAdminClawer {
         // }
     }
 
-    private void saveToFile(String filePath, ResponseBean responseBean) throws IOException, InterruptedException, URISyntaxException {
-        Thread.sleep(3000L);
+    private void saveToFile(String filePath, ResponseBean responseBean) throws IOException {
+        // Thread.sleep(3000L);
         Path path = Paths.get(filePath);
+        // Path basePath = path.
         if (responseBean == null || responseBean.getData() == null || responseBean.getData().size() < 1) {
             return;
         }
@@ -63,15 +69,15 @@ public class TiandituAdminClawer {
             if (childDataBeanList != null && childDataBeanList.size() > 0) {
                 for (DataBean childDataBean : childDataBeanList) {
                     try {
-
                         if (StringUtils.isNotBlank(childDataBean.getCityCode())) {
-                            String content = HttpCLientUtil.getContentAsString(getUri(getQueryParameters(childDataBean.getCityCode())));
-                            log.info("child response content: {}", content);
+                            String content = HttpClientUtil.getContentAsString(getUri(getQueryParameters(childDataBean.getCityCode())));
+                            log.debug("child response content: {}", content);
+                            saveOneAdmin(path.getParent(), childDataBean.getCityCode(), childDataBean.getName(), content);
                             ResponseBean childResponseBean = JSON.parseObject(content, ResponseBean.class);
                             saveToFile(filePath, childResponseBean);
                         }
                     } catch (Exception e) {
-                        log.error("save data bean failed: {}", childDataBean);
+                        log.error("===save data bean failed: {}", childDataBean.getCityCode() + "__" + childDataBean.getName());
                         log.error("save failed", e);
                     }
                 }
@@ -96,6 +102,11 @@ public class TiandituAdminClawer {
         nameValuePairList.add(nameValuePair2);
 
         return nameValuePairList;
+    }
+
+    private void saveOneAdmin(Path parentPath, String cityCode, String cityName, String content) throws IOException {
+        String fileName = "fileByAdmin" + File.separator + cityCode + "__" + cityName + ".json";
+        Files.write(parentPath.resolve(fileName), Collections.singletonList(content), Charset.forName("utf-8"), StandardOpenOption.CREATE);
     }
 
 }

@@ -7,8 +7,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.apache.http.NameValuePair;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,16 +57,36 @@ public class TiandituAdminClawerTest {
 
     @Test
     public void getAllAdmin() {
-        String filePath = "D:\\tmp\\allAdmin.txt";
+        String filePath = "D:\\tmp\\allAdmin_v2.txt";
+        String cityCode = "156000000";//中华人民共和国
+        String cityName = "中华人民共和国";//中华人民共和国
+
+        // String cityCode = "156110000";
+        // String cityName = "北京市";
         try {
-            tiandituAdminClawer.allAdmin(filePath);
+            tiandituAdminClawer.allAdmin(filePath, cityCode, cityName);
         } catch (URISyntaxException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
+    }
+
+    @Test
+    public void pathResolve() {
+        String pathStr = "D:\\data\\spatial_data\\China\\admin\\Untitled-1.json";
+        Path path = Paths.get(pathStr);
+        System.out.println("source path: " + path.toString());
+        System.out.println("source path get parent: " + path.getParent());
+        System.out.println("source path get root: " + path.getRoot());
+        String partPath = "srcContent/aa.txt";
+        Path tmpPath = path.getParent().resolve(partPath);
+        System.out.println("resolve path: " + tmpPath.toString());
+
+
+        System.out.println("file path separator: "+ File.pathSeparator);
+        System.out.println("file separator: "+ File.separator);
+
     }
 
 }
